@@ -147,3 +147,30 @@ Dokumen ini berisi rangkuman seluruh permintaan pengguna (prompts) dari awal hin
 ### Berkas yang Terkait
 *   [netlify.toml](file:///Users/gamasatrya/AG/WEBSITEAPPART/netlify.toml) [NEW] (Konfigurasi build & redirects root)
 *   [client/public/_redirects](file:///Users/gamasatrya/AG/WEBSITEAPPART/client/public/_redirects) [NEW] (Konfigurasi rewrite SPA client)
+
+---
+
+## 6. Perbaikan Integrasi API Backend di Production (Netlify Functions)
+
+### Permintaan Pengguna (Prompt)
+> Analisis mengapa aplikasi yang berjalan normal di localhost tidak menampilkan data setelah di-deploy ke Netlify. Di Chrome DevTools (Network), semua request API (status, properties, analytics) berstatus (failed) dengan Size: 0.0 kB, sehingga request tampaknya tidak pernah mencapai server. Lakukan investigasi menyeluruh pada konfigurasi frontend (API Base URL, fetch/axios, environment variables), konfigurasi Netlify, backend, CORS, HTTPS/HTTP (Mixed Content), DNS, dan deployment. Cari root cause berdasarkan kode proyek, bukan sekadar memberikan kemungkinan. Jelaskan penyebabnya, file yang perlu diperbaiki, perubahan kode yang diperlukan, dan langkah verifikasi hingga aplikasi dapat berjalan normal di production.
+
+### Solusi Teknis & Implementasi
+*   **Identifikasi Masalah (Root Cause)**:
+    *   Netlify merupakan platform hosting file statis dan tidak menjalankan backend server Express.js (`server/server.js`) secara mandiri.
+    *   Variabel `API_BASE` pada frontend awalnya di-hardcode ke `http://localhost:5001/api`, sehingga ketika diakses dari production, peramban mencoba mengirim request ke localhost milik pengguna eksternal yang tidak memiliki server berjalan di sana.
+*   **Migrasi ke Serverless Functions (Netlify Functions)**:
+    *   Membuat folder `netlify/functions` dan memigrasikan seluruh logika API dari Express.js ke dalam serverless function Netlify.
+    *   Membuat berkas utilitas terpusat `netlify/functions/utils/data.js` untuk mengadopsi logika data loading, query filtering, dan kalkulasi statistik.
+    *   Menyalin database lokal `data/properties.json` ke folder fungsi serverless agar ikut dibundel pada server CDN Netlify.
+    *   Menulis fungsi lambda serverless terpisah untuk `/properties`, `/analytics`, `/autocomplete`, `/export`, dan `/scraper-status`.
+*   **Proxy Redirects & Dynamic API URL**:
+    *   Mengatur rewrite proxy pada `netlify.toml` agar request dari client `/api/*` secara otomatis diarahkan secara aman ke internal serverless function `/.netlify/functions/*`.
+    *   Mengubah inisialisasi `API_BASE` di `App.jsx` agar menggunakan host relatif `/api` di production dan URL localhost di development menggunakan parameter `import.meta.env.DEV`.
+
+### Berkas yang Terkait
+*   [client/src/App.jsx](file:///Users/gamasatrya/AG/WEBSITEAPPART/client/src/App.jsx#L12) (Variabel host API dinamis)
+*   [netlify.toml](file:///Users/gamasatrya/AG/WEBSITEAPPART/netlify.toml) (Pengaturan proxy routing)
+*   [netlify/functions/properties.js](file:///Users/gamasatrya/AG/WEBSITEAPPART/netlify/functions/properties.js) [NEW] (Lambda function data explorer)
+*   [netlify/functions/analytics.js](file:///Users/gamasatrya/AG/WEBSITEAPPART/netlify/functions/analytics.js) [NEW] (Lambda function dashboard analytics)
+*   [netlify/functions/utils/data.js](file:///Users/gamasatrya/AG/WEBSITEAPPART/netlify/functions/utils/data.js) [NEW] (Utilitas shared logic backend)

@@ -9,7 +9,7 @@ import {
   FileText, ShieldCheck, CheckCircle2, AlertCircle, Info, ExternalLink, Menu, Link
 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:5001/api';
+const API_BASE = import.meta.env.DEV ? 'http://localhost:5001/api' : '/api';
 
 const LOCATIONS = [
   { slug: 'kuala-lumpur', name: 'Kuala Lumpur' },

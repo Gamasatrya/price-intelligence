@@ -3,6 +3,37 @@
   command = "npm run build"
   publish = "dist"
 
+[functions]
+  directory = "../netlify/functions"
+  included_files = ["../netlify/functions/data/**"]
+
+# API redirects — proxy /api/* to Netlify Functions
+[[redirects]]
+  from = "/api/properties"
+  to = "/.netlify/functions/properties"
+  status = 200
+
+[[redirects]]
+  from = "/api/analytics"
+  to = "/.netlify/functions/analytics"
+  status = 200
+
+[[redirects]]
+  from = "/api/autocomplete"
+  to = "/.netlify/functions/autocomplete"
+  status = 200
+
+[[redirects]]
+  from = "/api/export"
+  to = "/.netlify/functions/export"
+  status = 200
+
+[[redirects]]
+  from = "/api/scraper/status"
+  to = "/.netlify/functions/scraper-status"
+  status = 200
+
+# SPA fallback — must be LAST
 [[redirects]]
   from = "/*"
   to = "/index.html"
