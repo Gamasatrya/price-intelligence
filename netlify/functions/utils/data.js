@@ -4,17 +4,45 @@ const path = require('path');
 // In Netlify Functions, we bundle the data alongside the function
 const DATA_FILE = path.join(__dirname, '../data/properties.json');
 
+let propertiesCache = null;
+
 function loadProperties() {
-  if (!fs.existsSync(DATA_FILE)) {
-    return [];
+  if (propertiesCache && propertiesCache.length > 0) {
+    return propertiesCache;
   }
+
+  // 1. Try to load via require (so that Netlify's builder/esbuild inlines the JSON into the code)
   try {
-    const raw = fs.readFileSync(DATA_FILE, 'utf8');
-    return JSON.parse(raw);
-  } catch (err) {
-    console.error('Error reading properties database:', err.message);
-    return [];
+    propertiesCache = require('../data/properties.json');
+    if (propertiesCache && propertiesCache.length > 0) {
+      return propertiesCache;
+    }
+  } catch (e) {
+    // silently continue
   }
+
+  // 2. Try file system relative to process.cwd() or __dirname
+  const pathsToTry = [
+    path.join(__dirname, '../data/properties.json'),
+    path.join(process.cwd(), 'netlify/functions/data/properties.json'),
+    path.join(process.cwd(), 'data/properties.json')
+  ];
+
+  for (const p of pathsToTry) {
+    try {
+      if (fs.existsSync(p)) {
+        const raw = fs.readFileSync(p, 'utf8');
+        propertiesCache = JSON.parse(raw);
+        if (propertiesCache && propertiesCache.length > 0) {
+          return propertiesCache;
+        }
+      }
+    } catch (err) {
+      // silently continue
+    }
+  }
+
+  return [];
 }
 
 function getFilteredProperties(properties, query) {
